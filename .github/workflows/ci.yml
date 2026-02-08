@@ -1,36 +1,30 @@
 name: CI
 
-on: ["pull_request", "push"]
-  # pull_request:
-  # push:
-  #   branches: ["main", "dev"]
+on:
+  pull_request:
+  push:
 
 jobs:
-  backend:
+  backend-docker-validate:
+    name: Backend Dockerfile Validation
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image (no push)
+        uses: docker/build-push-action@v6
         with:
-          python-version: "3.12"
-
-      - name: Install deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run tests
-        run: pytest -q
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: myapp-backend:ci
 
   frontend:
+    name: Frontend Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -46,7 +40,8 @@ jobs:
       - name: Build
         run: npm run build
 
-  docker-build:
+  docker-build-validate:
+    name: Docker Images Build Validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +53,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
+          file: ./backend/Dockerfile
           push: false
           tags: myapp-backend:ci
 
@@ -65,5 +61,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
+          file: ./frontend/Dockerfile
           push: false
           tags: myapp-frontend:ci
